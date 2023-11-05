@@ -4,6 +4,8 @@
 #include "imgui_impl_opengl3_loader.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
 
 #ifdef WIN32
 #include <ShellScalingAPI.h>
@@ -93,14 +95,39 @@ int main() {
     io.Fonts->Build();
     cfg.GlyphOffset.y = highDPIScaleFactor;
 
-    // TODO project+gamesettings
-    const std::filesystem::path romfsPath = "/home/user/ainby/project/vanilla_100/romfs/";
-    const bool isTotk = true;
-    if (isTotk) {
-        const std::filesystem::path zsdicfile = romfsPath / "Pack/ZsDic.pack.zs";
-        ZSTD_ReaderPool::LoadDDictsFromSarc(zsdicfile);
+    json fakeWonderConfig = json::parse(R"(
+      {
+        "appCachePath": "/home/user/ainby/project/smw_eg/cache",
+        "romfsPath": "/home/user/ainby/project/smw_eg/romfs",
+        "modRomfsPath": "/home/user/ainby/project/smw_eg/output_romfs",
+
+        "titleName": "wonder_100",
+        "globalAinbPacks": ["Pack/AIGameCommon.pack.zs"],
+        "rootAinbFolders": ["AI"],
+        "zsdicPackFile": ""
+      }
+    )");
+
+    json fakeTotkConfig = json::parse(R"(
+      {
+        "appCachePath": "/home/user/ainby/project/zelda_eg/cache",
+        "romfsPath": "/home/user/ainby/project/zelda_eg/romfs",
+        "modRomfsPath": "/home/user/ainby/project/zelda_eg/output_romfs",
+
+        "titleName": "totk_100",
+        "globalAinbPacks": ["Pack/AI.Global.Product.100.pack.zs"],
+        "rootAinbFolders": ["AI", "Logic", "Sequence"],
+        "zsdicPackFile": "Pack/ZsDic.pack.zs"
+      }
+    )");
+
+    // Load paths, prepare zstd, crawl romfs
+    // TODO actually read this from somewhere
+    ProjectConfig::LoadFromJson(fakeWonderConfig);
+    auto pc = ProjectConfig::Get();
+    if (pc.zsdicPackFile.size() > 0) {
+        ZSTD_ReaderPool::LoadDDictsFromSarc(pc.romfsPath / pc.zsdicPackFile);
     }
-    FileIndexCache::Get().SetRomfsPath(romfsPath);
     FileIndexCache::Get().CrawlPacks();
 
     // Render loop

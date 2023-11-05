@@ -9,6 +9,7 @@
 #include "file_formats/sarc.hpp"
 #include "file_formats/zstd.hpp"
 #include "file_index_cache.hpp"
+#include "project_config.hpp"
 
 // Main editor class
 class AINBY {
@@ -34,7 +35,7 @@ private:
     void DrawPackBrowser();
     std::string DrawPackTree(const std::vector<std::string> &fileList);
 
-    void HandleOpenRequest(FileIndexCache& index, FileIndexCacheEntry selectedEntry);
+    void HandleOpenRequest(FileIndexCacheEntry selectedEntry);
 
 public:
     void Draw();

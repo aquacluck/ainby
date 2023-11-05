@@ -38,7 +38,7 @@ void AINBY::Draw() {
     auto index = FileIndexCache::Get();
     auto maybeOpenEntry = FileIndexCacheBrowser::Draw(index);
     if (maybeOpenEntry) {
-        HandleOpenRequest(index, *maybeOpenEntry);
+        HandleOpenRequest(*maybeOpenEntry);
     }
     ImGui::End();
 
@@ -47,7 +47,7 @@ void AINBY::Draw() {
         auto maybeOpenInternalFilename = PackBrowser::Draw(currentSarc);
         if (maybeOpenInternalFilename) {
             auto entry = FileIndexCacheEntry(*maybeOpenInternalFilename, currentSarcName);
-            HandleOpenRequest(index, entry);
+            HandleOpenRequest(entry);
         }
     }
     ImGui::End();
@@ -192,8 +192,9 @@ void AINBY::DrawMainWindow() {
     }
 }
 
-void AINBY::HandleOpenRequest(FileIndexCache& index, FileIndexCacheEntry selectedEntry) {
+void AINBY::HandleOpenRequest(FileIndexCacheEntry selectedEntry) {
     editor.UnloadAINB();
+    auto pc = ProjectConfig::Get();
 
     std::optional<std::ifstream> rawFileStream;
     std::optional<std::istrstream> packInternalStream;
@@ -201,10 +202,10 @@ void AINBY::HandleOpenRequest(FileIndexCache& index, FileIndexCacheEntry selecte
         currentSarc.Clear();
         sarcLoaded = false;
 
-        rawFileStream = std::ifstream(index.GetRomfsPath() / selectedEntry.file, std::ios::binary);
+        rawFileStream = std::ifstream(pc.romfsPath / selectedEntry.file, std::ios::binary);
     } else {
         currentSarcName = selectedEntry.packFile;
-        ZSTD_ReaderPool::OpenPackFile(index.GetRomfsPath() / currentSarcName, currentSarc);
+        ZSTD_ReaderPool::OpenPackFile(pc.romfsPath / currentSarcName, currentSarc);
         sarcLoaded = true;
 
         u32 fileSize;

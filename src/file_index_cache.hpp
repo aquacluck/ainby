@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <map>
 #include <string>
+#include "project_config.hpp"
 
 // per filetype index of everything inside packs (but just ainb for now)
 class FileIndexCacheEntry {
@@ -31,16 +32,11 @@ class FileIndexCache {
 public:
     static FileIndexCache& Get(void); // singleton or whatever for now
 
-    // should find nicer get/set patterns
-    std::filesystem::path GetRomfsPath();
-    void SetRomfsPath(const std::filesystem::path _romfsPath);
-
     // key is "ainb", TODO make a filetype enum or something
     std::map<std::string, FileIndexCacheType> types;
 
     void CrawlPacks();
 
 private:
-    std::filesystem::path romfsPath;
-    void IndexPack(const std::filesystem::path packPath);
+    void IndexPack(const std::filesystem::path packPath, ProjectConfig &pc);
 };
