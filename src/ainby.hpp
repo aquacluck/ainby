@@ -1,16 +1,26 @@
 #pragma once
 
+#include <filesystem>
+#include <string>
+#include <optional>
+
 #include "ainb_editor/ainb_editor.hpp"
 #include "file_formats/ainb.hpp"
 #include "file_formats/sarc.hpp"
+#include "file_formats/zstd.hpp"
+#include "file_index_cache.hpp"
 
 // Main editor class
 class AINBY {
 private:
     AINBEditor editor;
 
+    //FileIndexCacheEntry currentIndexEntry;
+
     SARC currentSarc;
+    std::string currentSarcName; // romfs relative path to pack.zs
     bool sarcLoaded = false;
+
     AINB currentAinb;
     bool ainbLoaded = false;
 
@@ -20,8 +30,11 @@ private:
     bool firstFrame = true;
 
     void DrawMainWindow();
-    void DrawFileBrowser();
-    std::string DrawFileTree(const std::vector<std::string> &fileList);
+
+    void DrawPackBrowser();
+    std::string DrawPackTree(const std::vector<std::string> &fileList);
+
+    void HandleOpenRequest(FileIndexCache& index, FileIndexCacheEntry selectedEntry);
 
 public:
     void Draw();

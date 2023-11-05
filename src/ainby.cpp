@@ -1,5 +1,8 @@
 #include "ainby.hpp"
+#include "ui/file_index_cache_browser.hpp"
+#include "ui/pack_browser.hpp"
 
+#include <iostream>
 #include <algorithm>
 #include <fstream>
 #include <sstream>
@@ -7,8 +10,6 @@
 
 #include <imgui_internal.h> // Internal header needed for DockSpaceXXX functions
 #include <tinyfiledialogs.h>
-
-#include "file_formats/zstd.hpp"
 
 void AINBY::Draw() {
     // Main Window -- Menu bar + Error popup
@@ -33,8 +34,22 @@ void AINBY::Draw() {
     ImGui::End();
     ImGui::PopStyleVar();
 
-    ImGui::Begin("File Browser");
-    DrawFileBrowser();
+    ImGui::Begin("AINB Index");
+    auto index = FileIndexCache::Get();
+    auto maybeOpenEntry = FileIndexCacheBrowser::Draw(index);
+    if (maybeOpenEntry) {
+        HandleOpenRequest(index, *maybeOpenEntry);
+    }
+    ImGui::End();
+
+    ImGui::Begin("Pack Browser");
+    if (sarcLoaded) {
+        auto maybeOpenInternalFilename = PackBrowser::Draw(currentSarc);
+        if (maybeOpenInternalFilename) {
+            auto entry = FileIndexCacheEntry(*maybeOpenInternalFilename, currentSarcName);
+            HandleOpenRequest(index, entry);
+        }
+    }
     ImGui::End();
 
     ImGui::Begin("AINB Inspector");
@@ -132,6 +147,7 @@ void AINBY::DrawMainWindow() {
                 std::ostrstream stream;
                 currentSarc.Write(stream);
 
+                // FIXME totk needs pack CDict
                 std::ofstream file(path, std::ios::binary);
                 ZSTD::Write(file, (const u8 *) stream.str(), stream.pcount());
 
@@ -154,7 +170,8 @@ void AINBY::DrawMainWindow() {
         ImGui::DockBuilderSplitNode(dockSpace, ImGuiDir_Left, 0.2f, &dockLeft, &dockMiddle);
         ImGui::DockBuilderSplitNode(dockMiddle, ImGuiDir_Right, 0.3f, &dockRight, &dockMiddle);
 
-        ImGui::DockBuilderDockWindow("File Browser", dockLeft);
+        ImGui::DockBuilderDockWindow("AINB Index", dockLeft);
+        ImGui::DockBuilderDockWindow("Pack Browser", dockLeft);
         ImGui::DockBuilderDockWindow("Node Viewer", dockMiddle);
         ImGui::DockBuilderDockWindow("AINB Inspector", dockRight);
 
@@ -175,94 +192,35 @@ void AINBY::DrawMainWindow() {
     }
 }
 
-void AINBY::DrawFileBrowser() {
-    if (!sarcLoaded) {
-        ImGui::Text("No file loaded");
-        return;
+void AINBY::HandleOpenRequest(FileIndexCache& index, FileIndexCacheEntry selectedEntry) {
+    editor.UnloadAINB();
+
+    std::optional<std::ifstream> rawFileStream;
+    std::optional<std::istrstream> packInternalStream;
+    if (selectedEntry.packFile == "Root") {
+        currentSarc.Clear();
+        sarcLoaded = false;
+
+        rawFileStream = std::ifstream(index.GetRomfsPath() / selectedEntry.file, std::ios::binary);
+    } else {
+        currentSarcName = selectedEntry.packFile;
+        ZSTD_ReaderPool::OpenPackFile(index.GetRomfsPath() / currentSarcName, currentSarc);
+        sarcLoaded = true;
+
+        u32 fileSize;
+        const u8 *buffer = currentSarc.GetFileByPath(selectedEntry.file, fileSize);
+        packInternalStream = std::istrstream((const char *) buffer, fileSize);
     }
-    if (ImGui::TreeNodeEx("Files", ImGuiTreeNodeFlags_DefaultOpen)) {
-        std::string selectedFile = DrawFileTree(currentSarc.GetFileList());
+    std::istream &is = packInternalStream ? (std::istream&)(*packInternalStream) : (std::istream&)(*rawFileStream);
 
-        if (selectedFile != "") {
-            u32 fileSize;
-            const u8 *buffer = currentSarc.GetFileByPath(selectedFile, fileSize);
-
-            std::istrstream stream((const char *) buffer, fileSize);
-            try {
-                currentAinb.Read(stream);
-                editor.RegisterAINB(currentAinb);
-                ainbLoaded = true;
-            } catch (std::exception &e) {
-                fileOpenErrorMessage = e.what();
-                shouldOpenErrorPopup = true;
-                ainbLoaded = false;
-                editor.UnloadAINB();
-            }
-        }
-
-        ImGui::TreePop();
+    try {
+        currentAinb.Read(is);
+        editor.RegisterAINB(currentAinb);
+        ainbLoaded = true;
+    } catch (std::exception &e) {
+        fileOpenErrorMessage = e.what();
+        shouldOpenErrorPopup = true;
+        ainbLoaded = false;
+        editor.UnloadAINB();
     }
-}
-
-std::string AINBY::DrawFileTree(const std::vector<std::string> &fileList) {
-    // Sort file list so that the drawing algorithm works correctly
-    // (and also so that the files are in alphabetical order lol)
-    std::vector<std::string> sortedFileList = fileList;
-    std::sort(sortedFileList.begin(), sortedFileList.end());
-
-    // Keep track of opened folders
-    std::vector<std::string> currPath;
-    std::vector<bool> isOpened;
-    isOpened.push_back(true);
-
-    std::string selectedFile = "";
-    for (const std::string &filePath : sortedFileList) {
-        // Split path into its components
-        std::vector<std::string> path;
-        std::istringstream iss(filePath);
-        std::string token;
-        while (std::getline(iss, token, '/')) {
-            path.push_back(token);
-        }
-
-        for (size_t i = 0; i < path.size(); i++) {
-            // Navigate to the correct folder
-            if (currPath.size() > i) {
-                if (currPath[i] == path[i]) {
-                    continue;
-                }
-                while (currPath.size() > i) {
-                    currPath.pop_back();
-                    if (isOpened.back()) {
-                        ImGui::TreePop();
-                    }
-                    isOpened.pop_back();
-                }
-            }
-            currPath.push_back(path[i]);
-
-            // Draw the folder node
-            if (isOpened.back()) {
-                ImGuiTreeNodeFlags nodeFlags = (i == path.size() - 1) ? ImGuiTreeNodeFlags_Leaf : ImGuiTreeNodeFlags_None;
-                bool openRes = ImGui::TreeNodeEx(path[i].c_str(), nodeFlags);
-                if (i == path.size() - 1 && ImGui::IsItemClicked()) {
-                    selectedFile = filePath;
-                }
-                isOpened.push_back(openRes);
-            } else {
-                // If parent folder is closed, the child folder must be closed too
-                isOpened.push_back(false);
-            }
-        }
-    }
-    // Finish popping off the tree node stack
-    while (currPath.size() > 0) {
-        currPath.pop_back();
-        if (isOpened.back()) {
-            ImGui::TreePop();
-        }
-        isOpened.pop_back();
-    }
-
-    return selectedFile;
 }

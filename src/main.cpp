@@ -93,6 +93,16 @@ int main() {
     io.Fonts->Build();
     cfg.GlyphOffset.y = highDPIScaleFactor;
 
+    // TODO project+gamesettings
+    const std::filesystem::path romfsPath = "/home/user/ainby/project/vanilla_100/romfs/";
+    const bool isTotk = true;
+    if (isTotk) {
+        const std::filesystem::path zsdicfile = romfsPath / "Pack/ZsDic.pack.zs";
+        ZSTD_ReaderPool::LoadDDictsFromSarc(zsdicfile);
+    }
+    FileIndexCache::Get().SetRomfsPath(romfsPath);
+    FileIndexCache::Get().CrawlPacks();
+
     // Render loop
     AINBY ainby;
     bool shouldClose = false;

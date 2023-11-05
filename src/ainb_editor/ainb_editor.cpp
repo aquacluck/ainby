@@ -147,6 +147,7 @@ void AINBEditor::DrawInspector() {
         ImGui::TreePop();
     }
 
+    // TODO Send open request up to main app?
     if (ImGui::TreeNode("Embedded AINBs")) {
         for (const AINB::EmbeddedAINB &e : ainb->embeddedAinbs) {
             ImGui::Text(" %s", e.name.c_str());
