@@ -20,3 +20,6 @@
 [submodule "libs/astc-encoder"]
 	path = libs/astc-encoder
 	url = https://github.com/ARM-software/astc-encoder
+[submodule "libs/smhasher"]
+	path = libs/smhasher
+	url = https://github.com/aappleby/smhasher.git
