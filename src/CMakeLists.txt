@@ -23,5 +23,5 @@ if(WIN32)
 endif()
 
 target_link_libraries(ainby
-    IMGUI TINYFILEDIALOGS libzstd_static
+    IMGUI TINYFILEDIALOGS libzstd_static nlohmann_json::nlohmann_json
 )

@@ -34,6 +34,10 @@ add_definitions(-DIMGUI_USER_CONFIG="${PROJECT_SOURCE_DIR}/src/ainby_imgui_confi
 
 target_link_libraries(IMGUI PRIVATE SDL3::SDL3-static)
 
+# json
+set(JSON_BuildTests OFF CACHE INTERNAL "")
+add_subdirectory("json")
+
 # tinyfiledialogs
 set(TINYFILEDIALOGS_DIR "tinyfd")
 
