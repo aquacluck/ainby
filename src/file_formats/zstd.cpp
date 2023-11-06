@@ -3,7 +3,9 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <mutex>
 #include <strstream>
+#include <thread>
 
 void ZSTD::Read(std::istream &szFile) {
     data = ZSTD_ReaderPool::DecompressPackStream(szFile);
@@ -29,9 +31,8 @@ void ZSTD::Write(std::ostream &szFile, const u8 *data, size_t size, int compress
 ZSTD_DDict* ZSTD_ReaderPool::packDict = nullptr;
 ZSTD_DDict* ZSTD_ReaderPool::productZstdDict = nullptr;
 ZSTD_DDict* ZSTD_ReaderPool::bcettBymlDict = nullptr;
-
-// TODO needs dctx per thread, just make in threadpool? not specific to packs or ddicts either
-ZSTD_DCtx* ZSTD_ReaderPool::packDCtx = ZSTD_createDCtx();
+ZSTD_DCtx* ZSTD_ReaderPool::mainThreadDCtx = ZSTD_createDCtx();
+std::vector<ZSTD_DCtx*> ZSTD_ReaderPool::threadDCtxPool;
 
 void ZSTD_ReaderPool::LoadDDictsFromSarc(const std::filesystem::path zsDicPackPath) {
     auto compressedBytes = ReadFile(zsDicPackPath);
@@ -66,15 +67,25 @@ void ZSTD_ReaderPool::LoadDDictsFromSarc(const std::filesystem::path zsDicPackPa
     bcettBymlDict = ZSTD_createDDict(internalFileBuffer, internalFileSize);
 }
 
-std::vector<u8> ZSTD_ReaderPool::DecompressPackFile(const std::filesystem::path zsFile) {
-    return DecompressPackVec(ReadFile(zsFile));
+void ZSTD_ReaderPool::AllocDCtxPool(const int maxThreads) {
+    threadDCtxPool.reserve(maxThreads);
+    for(auto i=0; i < maxThreads; i++) {
+        threadDCtxPool.push_back(ZSTD_createDCtx());
+    }
 }
 
-std::vector<u8> ZSTD_ReaderPool::DecompressPackStream(std::istream &zsStream) {
-    return DecompressPackVec(ReadStream(zsStream));
+std::vector<u8> ZSTD_ReaderPool::DecompressPackFile(const std::filesystem::path zsFile, ZSTD_DCtx* dctx /*=nullptr*/) {
+    return DecompressPackVec(ReadFile(zsFile), dctx);
 }
 
-std::vector<u8> ZSTD_ReaderPool::DecompressPackVec(std::vector<u8> compressedBytes) {
+std::vector<u8> ZSTD_ReaderPool::DecompressPackStream(std::istream &zsStream, ZSTD_DCtx* dctx /*=nullptr*/) {
+    return DecompressPackVec(ReadStream(zsStream), dctx);
+}
+
+std::vector<u8> ZSTD_ReaderPool::DecompressPackVec(std::vector<u8> compressedBytes, ZSTD_DCtx* dctx /*=nullptr*/) {
+    // When no dctx provided, assume we're in a blocking main thread call and always use this one
+    if (dctx == nullptr) { dctx = mainThreadDCtx; }
+
     std::vector<u8> sarcBuff;
     const auto sarcSize = ZSTD_getFrameContentSize(compressedBytes.data(), compressedBytes.size());
     if (ZSTD_isError(sarcSize)) {
@@ -83,10 +94,11 @@ std::vector<u8> ZSTD_ReaderPool::DecompressPackVec(std::vector<u8> compressedByt
     sarcBuff.resize(sarcSize);
     size_t res;
     if (packDict) {
-        res = ZSTD_decompress_usingDDict(packDCtx, sarcBuff.data(), sarcSize, compressedBytes.data(), compressedBytes.size(), packDict);
+        res = ZSTD_decompress_usingDDict(dctx, sarcBuff.data(), sarcSize, compressedBytes.data(), compressedBytes.size(), packDict);
     } else {
-        res = ZSTD_decompressDCtx(packDCtx, sarcBuff.data(), sarcSize, compressedBytes.data(), compressedBytes.size());
+        res = ZSTD_decompressDCtx(dctx, sarcBuff.data(), sarcSize, compressedBytes.data(), compressedBytes.size());
     }
+
     if (ZSTD_isError(res)) {
         throw std::runtime_error("Could not decompress ZS file: " + std::string(ZSTD_getErrorName(res)));
     }
@@ -107,6 +119,35 @@ void ZSTD_ReaderPool::OpenPackFile(const std::filesystem::path zsFile, SARC& out
     // TODO spanstream should eliminate this copy, the deprecation, the silly cast
     std::istrstream sarcStream(reinterpret_cast<const char*>(sarcBuff.data()), sarcBuff.size());
     output.Read(sarcStream); // Another copy
+}
+
+std::map<std::filesystem::path, SARC> ZSTD_ReaderPool::OpenPackFileBatch(std::vector<std::filesystem::path> packPathList) {
+    std::map<std::filesystem::path, SARC> output;
+    std::mutex outputMutex;
+    std::vector<std::thread> threads;
+    auto workCount = packPathList.size();
+    if (workCount > threadDCtxPool.size()) {
+        throw std::runtime_error("Pack batch size exceeds available DCtxs/maxDecompressionThreads");
+    }
+
+    for (auto i=0; i < workCount; i++) {
+        auto packPath = packPathList[i];
+        auto dctx = threadDCtxPool[i];
+        threads.emplace_back([&] (std::filesystem::path pp, ZSTD_DCtx* dctx) {
+            auto sarcBuff = DecompressPackFile(pp, dctx);
+            std::istrstream sarcStream(reinterpret_cast<const char*>(sarcBuff.data()), sarcBuff.size());
+            // Lock and write to output
+            std::scoped_lock lk(outputMutex);
+            // XXX can we do some Read before locking, then std::move or copy or something faster than the Read?
+            output[pp].Read(sarcStream);
+        }, packPath, dctx);
+    }
+
+    for (auto i=0; i < workCount; i++) {
+        threads[i].join();
+    }
+
+    return output;
 }
 
 std::vector<u8> ZSTD_ReaderPool::ReadFile(const std::filesystem::path zsFile) {

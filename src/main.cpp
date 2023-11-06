@@ -104,7 +104,9 @@ int main() {
         "titleName": "wonder_100",
         "globalAinbPacks": ["Pack/AIGameCommon.pack.zs"],
         "rootAinbFolders": ["AI"],
-        "zsdicPackFile": ""
+        "zsdicPackFile": "",
+
+        "maxDecompressionThreads": 8
       }
     )");
 
@@ -117,7 +119,9 @@ int main() {
         "titleName": "totk_100",
         "globalAinbPacks": ["Pack/AI.Global.Product.100.pack.zs"],
         "rootAinbFolders": ["AI", "Logic", "Sequence"],
-        "zsdicPackFile": "Pack/ZsDic.pack.zs"
+        "zsdicPackFile": "Pack/ZsDic.pack.zs",
+
+        "maxDecompressionThreads": 32
       }
     )");
 
@@ -128,6 +132,7 @@ int main() {
     if (pc.zsdicPackFile.size() > 0) {
         ZSTD_ReaderPool::LoadDDictsFromSarc(pc.romfsPath / pc.zsdicPackFile);
     }
+    ZSTD_ReaderPool::AllocDCtxPool(pc.maxDecompressionThreads);
     FileIndexCache::Get().CrawlPacks();
 
     // Render loop

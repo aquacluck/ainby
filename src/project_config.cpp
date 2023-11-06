@@ -15,4 +15,6 @@ void ProjectConfig::LoadFromJson(const json& j) {
     projectConfig.globalAinbPacks = j["globalAinbPacks"];
     projectConfig.rootAinbFolders = j["rootAinbFolders"];
     projectConfig.zsdicPackFile = j["zsdicPackFile"];
+
+    projectConfig.maxDecompressionThreads = j["maxDecompressionThreads"];
 }

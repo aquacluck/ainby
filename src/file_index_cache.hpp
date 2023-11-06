@@ -38,5 +38,5 @@ public:
     void CrawlPacks();
 
 private:
-    void IndexPack(const std::filesystem::path packPath, ProjectConfig &pc);
+    void IndexPackBatch(const std::vector<std::filesystem::path> packPaths, ProjectConfig &pc);
 };

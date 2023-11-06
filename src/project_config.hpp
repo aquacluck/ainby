@@ -24,4 +24,6 @@ public:
     std::vector<std::string> globalAinbPacks; // romfs-relative pack files to index (Pack/Actor is always crawled)
     std::vector<std::string> rootAinbFolders; // romfs-relative folders to index
     std::string zsdicPackFile; // romfs-relative zsdic pack (only for totk). Internal filenames+handling is still hardcoded
+
+    int maxDecompressionThreads; // minimum 2 for no good reason
 };
