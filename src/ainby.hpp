@@ -10,6 +10,7 @@
 #include "file_formats/zstd.hpp"
 #include "file_index_cache.hpp"
 #include "project_config.hpp"
+#include "style.hpp"
 
 // Main editor class
 class AINBY {

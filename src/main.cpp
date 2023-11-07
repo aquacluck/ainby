@@ -89,11 +89,18 @@ int main() {
     style.ScaleAllSizes(highDPIScaleFactor);
     style.WindowRounding = 6;
 
-    ImFontConfig cfg;
-    cfg.SizePixels = 18 * highDPIScaleFactor;
-    io.Fonts->AddFontFromFileTTF("sarasa-term-j-regular.ttf", 20 * highDPIScaleFactor, nullptr, io.Fonts->GetGlyphRangesJapanese());
+    ImFontConfig fontUiConfig;
+    fontUiConfig.GlyphOffset.y = highDPIScaleFactor;
+
+    ImFontConfig fontNodeGraphConfig;
+    fontNodeGraphConfig.GlyphOffset.y = highDPIScaleFactor;
+    fontNodeGraphConfig.OversampleH = 2;
+    fontNodeGraphConfig.OversampleV = 2;
+
+    // 16 for main text, 14@1.0f for node editor
+    Style::fonts[Style::FONT_UI] = io.Fonts->AddFontFromFileTTF("sarasa-term-j-regular.ttf", 16 * highDPIScaleFactor, &fontUiConfig, io.Fonts->GetGlyphRangesJapanese());
+    Style::fonts[Style::FONT_NODE_GRAPH] = io.Fonts->AddFontFromFileTTF("sarasa-term-j-regular.ttf", 14 * highDPIScaleFactor, &fontNodeGraphConfig, io.Fonts->GetGlyphRangesJapanese());
     io.Fonts->Build();
-    cfg.GlyphOffset.y = highDPIScaleFactor;
 
     json fakeWonderConfig = json::parse(R"(
       {

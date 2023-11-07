@@ -11,10 +11,21 @@
 #include "ainb_editor.hpp"
 #include "file_formats/ainb.hpp"
 #include "node_editor/imgui_node_editor.h"
+#include "style.hpp"
 
 AINBEditor::AINBEditor() {
     edConfig.SettingsFile = nullptr;
     edConfig.NavigateButtonIndex = 2;
+
+    // Prevent scaling on resize, as this will exceed zoom limits and other annoying things
+    edConfig.CanvasSizeMode = ax::NodeEditor::CanvasSizeMode::CenterOnly;
+
+    // We don't zoom in, but we can zoom far out. Defaults were 0.1 to 8.0
+    // Zooming all the way in to 1x feels nice and keeps text crisp
+    const float zooms[] = {0.05f, 0.1f, 0.20f, 0.33f, 0.66f, 1.0f};
+    for (auto& zoom: zooms) {
+        edConfig.CustomZoomLevels.push_back(zoom);
+    }
 }
 
 AINBEditor::~AINBEditor() {
@@ -167,6 +178,7 @@ void AINBEditor::DrawNodeEditor() {
     bool wantSavePositions = ImGui::Button("Save node positions");
     ImGui::Separator();
 
+    ImGui::PushFont(Style::fonts[Style::FONT_NODE_GRAPH]);
     ed::SetCurrentEditor(edContext);
     ed::Begin("AINB Editor", ImVec2(0.0, 0.0f));
 
@@ -187,6 +199,7 @@ void AINBEditor::DrawNodeEditor() {
     }
 
     ed::Suspend();
+    ImGui::PopFont();
 
     if (ed::ShowNodeContextMenu(&rightClickedNode)) {
         ImGui::OpenPopup("Node Actions");
@@ -227,6 +240,7 @@ void AINBEditor::DrawNodeEditor() {
         }
     }
 
+    ImGui::PushFont(Style::fonts[Style::FONT_NODE_GRAPH]);
     ed::Resume();
 
     if (wantAutoLayout) {
@@ -243,6 +257,7 @@ void AINBEditor::DrawNodeEditor() {
 
     ed::End();
     ed::SetCurrentEditor(nullptr);
+    ImGui::PopFont();
 
     if (wantLoadPositions) {
         LoadPositionFromFile();
