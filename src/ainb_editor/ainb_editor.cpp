@@ -34,6 +34,7 @@ void AINBEditor::RegisterAINB(AINB &ainb) {
     edContext = ed::CreateEditor(&edConfig);
     selectedNodeIdx = -1;
     selectedCommand = "";
+    AutoLayout();
 }
 
 void AINBEditor::UnloadAINB() {
