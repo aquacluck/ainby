@@ -53,6 +53,14 @@ target_include_directories(TINYFILEDIALOGS
 set(ZSTD_DIR "zstd")
 add_subdirectory(${ZSTD_DIR}/build/cmake)
 
+# astc-encoder
+set(ASTCENC_DIR "astc-encoder")
+add_subdirectory(${ASTCENC_DIR})
+
+# fastc
+#set(FASTC_DIR "FasTC")
+#add_subdirectory(${FASTC_DIR})
+
 # fushigi_bfres
 set(FUSHIGI_BFRES_DIR "Fushigi.Bfres")
 add_library(FUSHIGI_BFRES STATIC)

@@ -17,3 +17,6 @@
 [submodule "libs/imgui_club"]
 	path = libs/imgui_club
 	url = https://github.com/ocornut/imgui_club
+[submodule "libs/astc-encoder"]
+	path = libs/astc-encoder
+	url = https://github.com/ARM-software/astc-encoder

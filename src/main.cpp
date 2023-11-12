@@ -142,14 +142,14 @@ int main() {
     ZSTD_ReaderPool::AllocDCtxPool(pc.maxDecompressionThreads);
     FileIndexCache::Get().CrawlPacks();
     if (ProjectConfig::Get().titleName == TITLE_TOTK_100) {
-        TotkMap2DView::Init();
+        //TotkMap2DView::Init();
     }
 
     // Render loop
     AINBY ainby;
+    SDL_Event event;
     bool shouldClose = false;
     while (!shouldClose && !ainby.shouldClose) {
-        SDL_Event event;
         while (SDL_PollEvent(&event)) {
             ImGui_ImplSDL3_ProcessEvent(&event);
             if (event.type == SDL_EVENT_QUIT)
@@ -164,10 +164,12 @@ int main() {
 
         ainby.Draw();
 
-        ImGui::Render();
         glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
         glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        ImGui::Render();
+
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         SDL_GL_SwapWindow(window);
     }

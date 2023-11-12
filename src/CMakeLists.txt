@@ -24,5 +24,5 @@ if(WIN32)
 endif()
 
 target_link_libraries(ainby
-    IMGUI TINYFILEDIALOGS libzstd_static nlohmann_json::nlohmann_json FUSHIGI_BFRES
+    IMGUI TINYFILEDIALOGS libzstd_static nlohmann_json::nlohmann_json FUSHIGI_BFRES astcenc-native-static
 )
