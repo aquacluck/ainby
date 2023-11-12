@@ -11,6 +11,7 @@
 #include "file_index_cache.hpp"
 #include "project_config.hpp"
 #include "style.hpp"
+#include "ui/totk_map_2d_view.hpp"
 
 // Main editor class
 class AINBY {

@@ -52,3 +52,18 @@ target_include_directories(TINYFILEDIALOGS
 # zstd
 set(ZSTD_DIR "zstd")
 add_subdirectory(${ZSTD_DIR}/build/cmake)
+
+# fushigi_bfres
+set(FUSHIGI_BFRES_DIR "Fushigi.Bfres")
+add_library(FUSHIGI_BFRES STATIC)
+
+target_sources(FUSHIGI_BFRES
+    PRIVATE
+        ${FUSHIGI_BFRES_DIR}/Fushigi_Bfres_Texture_BntxFile.cpp
+        ${FUSHIGI_BFRES_DIR}/Fushigi_Bfres_Texture_BntxTexture.cpp
+        ${FUSHIGI_BFRES_DIR}/Fushigi_Bfres_Texture_Swizzling_TegraX1Swizzle.cpp
+)
+
+target_include_directories(FUSHIGI_BFRES
+    PUBLIC ${FUSHIGI_BFRES_DIR}
+)

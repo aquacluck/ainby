@@ -4,7 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <mutex>
-#include <strstream>
+#include <span>
 #include <thread>
 
 void ZSTD::Read(std::istream &szFile) {
@@ -14,6 +14,10 @@ void ZSTD::Read(std::istream &szFile) {
 const u8 *ZSTD::GetData(size_t &size) const {
     size = data.size();
     return data.data();
+}
+
+std::basic_spanstream<u8> ZSTD::GetStream(void) {
+    return std::basic_spanstream(std::span{(u8*)data.data(), data.size()});
 }
 
 void ZSTD::Write(std::ostream &szFile, const u8 *data, size_t size, int compressionLevel) {
@@ -48,8 +52,7 @@ void ZSTD_ReaderPool::LoadDDictsFromSarc(const std::filesystem::path zsDicPackPa
     }
     //std::cout << compressedBytes.size() << " -> " << sarcSize << "\n";
 
-    // TODO spanstream should eliminate this copy, the deprecation, the silly cast
-    std::istrstream sarcStream(reinterpret_cast<const char*>(sarcBuff.data()), sarcBuff.size());
+    std::basic_spanstream sarcStream(std::span{(char*)sarcBuff.data(), sarcBuff.size()});
     SARC zsDicPack;
     zsDicPack.Read(sarcStream); // Another copy
 
@@ -107,8 +110,7 @@ std::vector<u8> ZSTD_ReaderPool::DecompressPackVec(std::vector<u8> compressedByt
 
 SARC ZSTD_ReaderPool::OpenPackFile(const std::filesystem::path zsFile) {
     auto sarcBuff = DecompressPackFile(zsFile);
-    // TODO spanstream should eliminate this copy, the deprecation, the silly cast
-    std::istrstream sarcStream(reinterpret_cast<const char*>(sarcBuff.data()), sarcBuff.size());
+    std::basic_spanstream sarcStream(std::span{(char*)sarcBuff.data(), sarcBuff.size()});
     SARC pack;
     pack.Read(sarcStream); // Another copy
     return pack;
@@ -116,8 +118,7 @@ SARC ZSTD_ReaderPool::OpenPackFile(const std::filesystem::path zsFile) {
 
 void ZSTD_ReaderPool::OpenPackFile(const std::filesystem::path zsFile, SARC& output) {
     auto sarcBuff = DecompressPackFile(zsFile);
-    // TODO spanstream should eliminate this copy, the deprecation, the silly cast
-    std::istrstream sarcStream(reinterpret_cast<const char*>(sarcBuff.data()), sarcBuff.size());
+    std::basic_spanstream sarcStream(std::span{(char*)sarcBuff.data(), sarcBuff.size()});
     output.Read(sarcStream); // Another copy
 }
 
@@ -135,7 +136,7 @@ std::map<std::filesystem::path, SARC> ZSTD_ReaderPool::OpenPackFileBatch(std::ve
         auto dctx = threadDCtxPool[i];
         threads.emplace_back([&] (std::filesystem::path pp, ZSTD_DCtx* dctx) {
             auto sarcBuff = DecompressPackFile(pp, dctx);
-            std::istrstream sarcStream(reinterpret_cast<const char*>(sarcBuff.data()), sarcBuff.size());
+            std::basic_spanstream sarcStream(std::span{(char*)sarcBuff.data(), sarcBuff.size()});
             // Lock and write to output
             std::scoped_lock lk(outputMutex);
             // XXX can we do some Read before locking, then std::move or copy or something faster than the Read?

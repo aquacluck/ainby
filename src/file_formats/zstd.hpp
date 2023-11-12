@@ -1,18 +1,22 @@
 #pragma once
 #include <filesystem>
-#include <string>
 #include <iostream>
+#include <memory>
+#include <spanstream>
+#include <string>
 #include <vector>
-#include <zstd.h>
 
+#include <zstd.h>
 #include "sarc.hpp"
 #include "types.h"
+
 
 // Owns an anonymous decompressed buffer
 class ZSTD {
 public:
     void Read(std::istream &szFile);
     const u8 *GetData(size_t &size) const;
+    std::basic_spanstream<u8> GetStream(void);
 
     static void Write(std::ostream &szFile, const u8 *data, size_t size, int compressionLevel = 19);
 

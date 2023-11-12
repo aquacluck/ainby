@@ -65,6 +65,12 @@ void AINBY::Draw() {
             editor.DrawNodeEditor();
         }
     ImGui::End();
+
+    if (ProjectConfig::Get().titleName == TITLE_TOTK_100) {
+        ImGui::Begin("World Map");
+        TotkMap2DView::Draw();
+        ImGui::End();
+    }
 }
 
 void AINBY::DrawMainWindow() {
@@ -173,6 +179,9 @@ void AINBY::DrawMainWindow() {
         ImGui::DockBuilderDockWindow("AINB Index", dockLeft);
         ImGui::DockBuilderDockWindow("Pack Browser", dockLeft);
         ImGui::DockBuilderDockWindow("Node Viewer", dockMiddle);
+        if (ProjectConfig::Get().titleName == TITLE_TOTK_100) {
+            ImGui::DockBuilderDockWindow("World Map", dockMiddle);
+        }
         ImGui::DockBuilderDockWindow("AINB Inspector", dockRight);
 
         ImGui::DockBuilderFinish(dockSpace);

@@ -13,6 +13,7 @@ set(ZSTD_DIR ${CMAKE_HOME_DIRECTORY}/libs/zstd/lib)
 
 target_include_directories(ainby
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_HOME_DIRECTORY}/libs/imgui_club/imgui_memory_editor
     PUBLIC ${ZSTD_DIR}
 )
 
@@ -23,5 +24,5 @@ if(WIN32)
 endif()
 
 target_link_libraries(ainby
-    IMGUI TINYFILEDIALOGS libzstd_static nlohmann_json::nlohmann_json
+    IMGUI TINYFILEDIALOGS libzstd_static nlohmann_json::nlohmann_json FUSHIGI_BFRES
 )

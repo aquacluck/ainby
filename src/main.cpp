@@ -141,6 +141,9 @@ int main() {
     }
     ZSTD_ReaderPool::AllocDCtxPool(pc.maxDecompressionThreads);
     FileIndexCache::Get().CrawlPacks();
+    if (ProjectConfig::Get().titleName == TITLE_TOTK_100) {
+        TotkMap2DView::Init();
+    }
 
     // Render loop
     AINBY ainby;

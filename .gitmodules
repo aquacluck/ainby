@@ -14,3 +14,6 @@
 [submodule "libs/json"]
 	path = libs/json
 	url = https://github.com/nlohmann/json
+[submodule "libs/imgui_club"]
+	path = libs/imgui_club
+	url = https://github.com/ocornut/imgui_club
